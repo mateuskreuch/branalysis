@@ -22,7 +22,7 @@ def get_json(url):
          return strip_dict_values(response.json())
 
       else:
-         print(f'Erro de código {response.status_code}, tentando novamente...')
+         print(f'Erro de código {response.status_code} ao tentar buscar "{url}", tentando novamente...')
 
 def get_parlamentar_id(voto):
    return voto.__data__['parlamentar']
