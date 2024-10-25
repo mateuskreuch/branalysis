@@ -90,8 +90,8 @@ class SexoColorizador(CorDict):
          return super().__getitem__(self._homem_texto)
 
       elif key == 'F' or key == 'FEMININO' or key == 'MULHER':
-         self[self._homem_texto] = 2
-         return super().__getitem__(self._homem_texto)
+         self[self._mulher_texto] = 2
+         return super().__getitem__(self._mulher_texto)
 
       else:
          self[self._outro_texto] = 1
