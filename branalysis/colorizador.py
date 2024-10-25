@@ -1,81 +1,117 @@
 from .plenario import Plenario
-from collections import defaultdict
-from datetime import date
 
-CORES_DISTINTAS = [
-   (0.374130, 0.349072, 0.834816), (0.375732, 0.948980, 0.351068),
-   (0.999287, 0.529506, 0.430137), (0.409326, 0.838729, 0.972094),
-   (0.869397, 0.450776, 0.993024), (0.923930, 0.961429, 0.390135),
-   (0.434579, 0.523570, 0.366049), (0.697178, 0.735409, 0.646617),
-   (0.713967, 0.363732, 0.611528), (0.354299, 0.623090, 0.718489),
-   (0.991665, 0.698022, 0.872882), (0.637456, 0.995176, 0.800402),
-   (0.689812, 0.695935, 0.997045), (0.622624, 0.720815, 0.338767),
-   (0.369069, 0.877033, 0.680562), (0.336292, 0.352160, 0.525869),
-   (0.998924, 0.379186, 0.686133), (0.891779, 0.903618, 0.730006),
-   (0.851174, 0.333869, 0.336817), (0.632991, 0.988453, 0.476372),
-   (0.595563, 0.502776, 0.820111), (0.958139, 0.747208, 0.500506),
-   (0.357699, 0.570577, 0.990941), (0.833028, 0.551961, 0.669448),
-   (0.359320, 0.725214, 0.441464), (0.755402, 0.543428, 0.407901),
-   (0.617759, 0.336745, 0.966364), (0.785624, 0.895714, 0.992699),
-   (0.588086, 0.522073, 0.574574), (0.606985, 0.365216, 0.376132),
-   (0.339434, 0.997778, 0.880484), (0.564010, 0.977843, 0.999555),
-   (0.525213, 0.715918, 0.831027), (0.753009, 0.855270, 0.403568),
-   (0.780864, 0.358026, 0.822234), (0.511958, 0.854333, 0.516067),
-   (0.373148, 0.457980, 0.679249), (0.500829, 0.695391, 0.587472),
-   (0.842315, 0.605479, 0.953453), (0.811928, 0.993559, 0.572243)
-]
-CORES_DISTINTAS_LEN = len(CORES_DISTINTAS)
+CORES = [(0         , 0         , 0         , 1),
+         (0.12156863, 0.46666667, 0.70588235, 1),
+         (0.68235294, 0.78039216, 0.90980392, 1),
+         (1         , 0.49803922, 0.05490196, 1),
+         (1         , 0.73333333, 0.47058824, 1),
+         (0.17254902, 0.62745098, 0.17254902, 1),
+         (0.59607843, 0.8745098 , 0.54117647, 1),
+         (0.83921569, 0.15294118, 0.15686275, 1),
+         (1         , 0.59607843, 0.58823529, 1),
+         (0.58039216, 0.40392157, 0.74117647, 1),
+         (0.77254902, 0.69019608, 0.83529412, 1),
+         (0.54901961, 0.3372549 , 0.29411765, 1),
+         (0.76862745, 0.61176471, 0.58039216, 1),
+         (0.89019608, 0.46666667, 0.76078431, 1),
+         (0.96862745, 0.71372549, 0.82352941, 1),
+         (0.49803922, 0.49803922, 0.49803922, 1),
+         (0.78039216, 0.78039216, 0.78039216, 1),
+         (0.7372549 , 0.74117647, 0.13333333, 1),
+         (0.85882353, 0.85882353, 0.55294118, 1),
+         (0.09019608, 0.74509804, 0.81176471, 1),
+         (0.61960784, 0.85490196, 0.89803922, 1),
+         (0.36746226, 0.57657207, 0.99569878, 1),
+         (0.34374094, 0.99982132, 0.74416974, 1),
+         (0.93693770, 0.35445788, 0.41093034, 1),
+         (0.33537410, 0.98556435, 0.34436210, 1),
+         (0.41227477, 0.69779199, 0.69629407, 1),
+         (0.40796869, 0.71298256, 0.36128163, 1),
+         (0.34350654, 0.33919606, 0.92732104, 1),
+         (0.74948717, 0.35481691, 0.98683299, 1),
+         (0.96067351, 0.99845293, 0.33948472, 1),
+         (0.34555829, 0.82555298, 0.98921235, 1),
+         (0.72532787, 0.48748777, 0.35086953, 1),
+         (0.79460877, 0.99795462, 0.80524173, 1),
+         (0.65089013, 0.54692150, 0.99562189, 1),
+         (0.69060265, 0.99990261, 0.33661118, 1),
+         (0.33850281, 0.34870083, 0.64869003, 1),
+         (0.99635084, 0.34399350, 0.97769131, 1),
+         (0.34568734, 0.85420426, 0.52686518, 1),
+         (0.97384107, 0.55338914, 0.99604514, 1),
+         (0.68163970, 0.33507463, 0.52441538, 1)]
 
-COR_PRETO = (0, 0, 0)
-COR_MASCULINO = (31/255, 119/255, 180/255)
-COR_FEMININO = (255/255, 83/255, 152/255)
-CORES_POR_SEXO = defaultdict(lambda: COR_PRETO, {'M': COR_MASCULINO, 'F': COR_FEMININO})
+class CorDict(dict):
+   def textos_e_cores(self, key=None, reverse=False) -> tuple[list[str], list[int]]:
+      if key is not None:
+         key = lambda x: key(x[0])
 
-def gradiente(x):
-   r = 0.8*x + 0.2
-   g = 2*max(0, x - 0.5)
+      return zip(*sorted(self.items(), key=key, reverse=reverse))
 
-   return (r, g, 0)
+class Colorizador(CorDict):
+   def __init__(self, fallback='DESCONHECIDO'):
+      super().__init__()
 
-class TupleDict(dict):
-   def __init__(self, itens):
-      super().__init__({ k: CORES_DISTINTAS[i % CORES_DISTINTAS_LEN] for i, k in enumerate(itens) })
+      self._fallback = fallback
+      self._last_color = 0
 
    def __getitem__(self, key):
-      if type(key) == tuple:
-         return super().__getitem__(key[0]) if len(key) == 1 else COR_PRETO
+      if type(key) != tuple:
+         return super().__getitem__(self._increase_color(key))
+
+      elif len(key) != 1:
+         self[self._fallback] = 0
+
+         return 0
+
+      return super().__getitem__(self._increase_color(key[0]))
+
+   def _increase_color(self, key):
+      if key not in self:
+         self._last_color += 1
+
+         self[key] = self._last_color
+
+      return key
+
+class SexoColorizador(CorDict):
+   def __init__(self, homem_texto='HOMEM', mulher_texto='MULHER', outro_texto='OUTRO'):
+      super().__init__()
+
+      self._homem_texto = homem_texto
+      self._mulher_texto = mulher_texto
+      self._outro_texto = outro_texto
+
+   def __getitem__(self, key):
+      key = key.upper()
+
+      if key == 'M' or key == 'MASCULINO' or key == 'HOMEM':
+         self[self._homem_texto] = 0
+         return super().__getitem__(self._homem_texto)
+
+      elif key == 'F' or key == 'FEMININO' or key == 'MULHER':
+         self[self._homem_texto] = 2
+         return super().__getitem__(self._homem_texto)
+
       else:
-         return super().__getitem__(key)
+         self[self._outro_texto] = 1
+         return super().__getitem__(self._outro_texto)
 
-class DatetimeDict(dict):
-   def __init__(self, intervalo, *args, **kwargs):
-      super().__init__(*args, **kwargs)
+class TempoColorizador(CorDict):
+   def __init__(self, plenario: Plenario, intervalo=10):
+      super().__init__()
+
+      _, ano_final = plenario.periodo()
       self._intervalo = intervalo
+      self._ano_final = self._get_closest(ano_final)
 
    def __getitem__(self, key):
-      return super().__getitem__(key.year // self._intervalo * self._intervalo)
+      ano = self._get_closest(key.year)
 
-class Colorizador:
-   def __init__(self, plenario: Plenario):
-      self._plenario = plenario
+      if ano not in self:
+         self[ano] = (ano - self._ano_final) // self._intervalo
 
-   def por_ano(self, intervalo=10) -> dict[date, tuple[float]]:
-      ESCALA = 100
+      return super().__getitem__(ano)
 
-      _, ate_ano = self._plenario.periodo()
-      ano_base = ate_ano - ESCALA
-      ano_base = ano_base // intervalo * intervalo
-
-      return DatetimeDict(intervalo, {ano: gradiente((ano - ano_base) / ESCALA) for ano in range(ano_base, ate_ano + 1, intervalo)})
-
-   def por_sexo(self) -> dict[str, tuple[float]]:
-      return CORES_POR_SEXO
-
-   def por_partido(self) -> dict[str | tuple[str], tuple[float]]:
-      return TupleDict(self._plenario.partidos())
-
-   def por_macroregiao(self) -> dict[str, tuple[float]]:
-      return TupleDict(self._plenario.macroregioes())
-
-   def por_uf(self) -> dict[str | tuple[str], tuple[float]]:
-      return TupleDict(self._plenario.ufs())
+   def _get_closest(self, ano):
+      return ano // self._intervalo * self._intervalo
