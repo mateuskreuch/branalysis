@@ -1,4 +1,5 @@
 from .plenario import Plenario
+from typing import Any, Callable
 
 CORES = [(0         , 0         , 0         , 1),
          (0.12156863, 0.46666667, 0.70588235, 1),
@@ -49,13 +50,26 @@ class CorDict(dict):
       return zip(*sorted(self.items(), key=key, reverse=reverse))
 
 class Colorizador(CorDict):
-   def __init__(self, fallback='DESCONHECIDO'):
+   def __init__(self, fallback='DESCONHECIDO', agrupador: Callable[[Any], str]=None, reservados: list[tuple[str]]=None):
       super().__init__()
 
       self._fallback = fallback
-      self._last_color = 0
+      self._agrupador = agrupador
+      self._reservados = { chave: i + 1 for i, chave in enumerate(reservados) } if reservados is not None else {}
+
+      self._reset()
+
+   def clear(self):
+      super().clear()
+      self._reset()
+
+   def set_agrupador(self, agrupador: Callable[[Any], str]):
+      self._agrupador = agrupador
 
    def __getitem__(self, key):
+      if self._agrupador is not None:
+         key = self._agrupador(key) or key
+
       if type(key) != tuple:
          return super().__getitem__(self._increase_color(key))
 
@@ -66,11 +80,18 @@ class Colorizador(CorDict):
 
       return super().__getitem__(self._increase_color(key[0]))
 
+   def _reset(self):
+      self._last_color = len(self._reservados)
+
    def _increase_color(self, key):
       if key not in self:
-         self._last_color += 1
+         if key in self._reservados:
+            self[key] = self._reservados[key]
 
-         self[key] = self._last_color
+         else:
+            self._last_color += 1
+
+            self[key] = self._last_color
 
       return key
 
@@ -90,11 +111,11 @@ class SexoColorizador(CorDict):
          return super().__getitem__(self._homem_texto)
 
       elif key == 'F' or key == 'FEMININO' or key == 'MULHER':
-         self[self._mulher_texto] = 2
+         self[self._mulher_texto] = 19
          return super().__getitem__(self._mulher_texto)
 
       else:
-         self[self._outro_texto] = 1
+         self[self._outro_texto] = 10
          return super().__getitem__(self._outro_texto)
 
 class TempoColorizador(CorDict):

@@ -88,40 +88,56 @@ class Plenario:
 
    @functools.cache
    def ufs_por_parlamentar(self) -> dict[str, tuple[str]]:
-      result = defaultdict(list)
+      result = {}
       votos = (self.votos(self._VOTO_CLS.parlamentar, self._VOTO_CLS.uf)
-                  .order_by(self._VOTO_CLS.uf)
-                  .distinct()
+                  .order_by(self._VOTACAO_CLS.data)
                   .iterator())
 
       for voto in votos:
-         result[get_parlamentar_id(voto)].append(voto.uf)
+         parlamentar_id = get_parlamentar_id(voto)
+
+         if parlamentar_id not in result:
+            result[parlamentar_id] = [voto.uf]
+
+         elif result[parlamentar_id][-1] != voto.uf:
+            result[parlamentar_id].append(voto.uf)
 
       return MappingProxyType({k: tuple(v) for k, v in result.items()})
 
    @functools.cache
    def macroregioes_por_parlamentar(self) -> dict[str, tuple[str]]:
-      result = defaultdict(set)
+      result = {}
       votos = (self.votos(self._VOTO_CLS.parlamentar, self._VOTO_CLS.uf)
-                  .order_by(self._VOTO_CLS.uf)
-                  .distinct()
+                  .order_by(self._VOTACAO_CLS.data)
                   .iterator())
 
       for voto in votos:
-         result[get_parlamentar_id(voto)].add(MACROREGIOES_POR_UF[voto.uf])
+         parlamentar_id = get_parlamentar_id(voto)
+         macrorregiao = MACROREGIOES_POR_UF[voto.uf]
+
+         if parlamentar_id not in result:
+            result[parlamentar_id] = [macrorregiao]
+
+         elif result[parlamentar_id][-1] != macrorregiao:
+            result[parlamentar_id].append(macrorregiao)
 
       return MappingProxyType({k: tuple(v) for k, v in result.items()})
 
    @functools.cache
    def partidos_por_parlamentar(self) -> dict[str, tuple[str]]:
-      result = defaultdict(list)
+      result = {}
       votos = (self.votos(self._VOTO_CLS.parlamentar, self._VOTO_CLS.partido)
-                  .order_by(self._VOTO_CLS.partido)
-                  .distinct()
+                  .order_by(self._VOTACAO_CLS.data)
                   .iterator())
 
       for voto in votos:
-         result[get_parlamentar_id(voto)].append(voto.partido)
+         parlamentar_id = get_parlamentar_id(voto)
+
+         if parlamentar_id not in result:
+            result[parlamentar_id] = [voto.partido]
+
+         elif result[parlamentar_id][-1] != voto.partido:
+            result[parlamentar_id].append(voto.partido)
 
       return MappingProxyType({k: tuple(v) for k, v in result.items()})
 
