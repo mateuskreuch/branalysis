@@ -2,6 +2,7 @@ from .db import camara, senado
 from .db.model import *
 from .db.utils import get_parlamentar_id
 from collections import defaultdict
+from datetime import date
 from types import MappingProxyType
 from typing import Iterable
 import functools
@@ -13,24 +14,36 @@ MACROREGIOES_POR_UF = ({ uf : MACROREGIOES[0] for uf in ('AC', 'AM', 'AP', 'PA',
                     |  { uf : MACROREGIOES[3] for uf in ('ES', 'MG', 'RJ', 'SP') }
                     |  { uf : MACROREGIOES[4] for uf in ('PR', 'RS', 'SC') })
 
+def cast_periodo(periodo, end=False):
+   if isinstance(periodo, date):
+      return periodo.strftime('%Y-%m-%d')
+
+   periodo = str(periodo)
+
+   if len(periodo) == 4:
+      periodo += '-01-01' if not end else '-12-31'
+
+   return periodo
+
 class Plenario:
    _PARLAMENTAR_CLS: BaseParlamentar
    _VOTACAO_CLS: BaseVotacao
    _VOTO_CLS: BaseVoto
 
-   def __init__(self, do_ano, ate_ano = None):
-      ate_ano = ate_ano or do_ano
+   def __init__(self, periodo_comeco, periodo_fim = None):
+      periodo_fim = periodo_fim or periodo_comeco
 
-      self._anos = (do_ano, ate_ano)
-      self._anos_str = (str(do_ano), str(ate_ano))
+      periodo_comeco = cast_periodo(periodo_comeco, end=False)
+      periodo_fim = cast_periodo(periodo_fim, end=True)
+
+      self._periodo = (periodo_comeco, periodo_fim)
 
    def parlamentares(self, *fields) -> list[BaseParlamentar]:
       return list(p.set_plenario(self) for p in self._PARLAMENTAR_CLS
                                                    .select(*fields)
                                                    .join(self._VOTO_CLS)
                                                    .join(self._VOTACAO_CLS)
-                                                   .where(fn.strftime('%Y', self._VOTACAO_CLS.data)
-                                                            .between(*self._anos_str))
+                                                   .where(self._VOTACAO_CLS.data.between(*self._periodo))
                                                    .group_by(self._PARLAMENTAR_CLS)
                                                    .order_by(self._PARLAMENTAR_CLS.nome))
 
@@ -144,31 +157,32 @@ class Plenario:
    def votacoes(self, *fields) -> Iterable[BaseVotacao]:
       return (self._VOTACAO_CLS
                   .select(*fields)
-                  .where(fn.strftime('%Y', self._VOTACAO_CLS.data).between(*self._anos_str))
+                  .where(self._VOTACAO_CLS.data.between(*self._periodo))
                   .order_by(self._VOTACAO_CLS.id))
 
    def votos(self, *fields) -> Iterable[BaseVoto]:
       return (self._VOTO_CLS
                .select(*fields)
                .join(self._VOTACAO_CLS)
-               .where(fn.strftime('%Y', self._VOTACAO_CLS.data).between(*self._anos_str))
+               .where(self._VOTACAO_CLS.data.between(*self._periodo))
                .order_by(self._VOTO_CLS.votacao))
 
    def periodo(self) -> tuple[int]:
-      return self._anos
-
-   def iter_periodo(self):
-      return range(self._anos[0], self._anos[1] + 1)
+      return self._periodo
 
 class Camara(Plenario):
    _PARLAMENTAR_CLS = Camara_Parlamentar
    _VOTACAO_CLS = Camara_Votacao
    _VOTO_CLS = Camara_Voto
 
-   def __init__(self, do_ano, ate_ano = None):
-      super().__init__(do_ano, ate_ano)
+   def __init__(self, periodo_comeco, periodo_fim = None):
+      super().__init__(periodo_comeco, periodo_fim)
 
-      for ano in self.iter_periodo():
+      data_comeco, data_fim = self.periodo()
+      ano_comeco = int(data_comeco[:4])
+      ano_fim = int(data_fim[:4])
+
+      for ano in range(ano_comeco, ano_fim + 1):
          camara.cache(ano)
 
 class Senado(Plenario):
@@ -176,8 +190,12 @@ class Senado(Plenario):
    _VOTACAO_CLS = Senado_Votacao
    _VOTO_CLS = Senado_Voto
 
-   def __init__(self, do_ano, ate_ano = None):
-      super().__init__(do_ano, ate_ano)
+   def __init__(self, periodo_comeco, periodo_fim = None):
+      super().__init__(periodo_comeco, periodo_fim)
 
-      for ano in self.iter_periodo():
+      data_comeco, data_fim = self.periodo()
+      ano_comeco = int(data_comeco[:4])
+      ano_fim = int(data_fim[:4])
+
+      for ano in range(ano_comeco, ano_fim + 1):
          senado.cache(ano)
