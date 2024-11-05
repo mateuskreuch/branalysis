@@ -66,6 +66,25 @@ class MatrizPolitica:
 
       return np.array(matrix)
 
+   def de_dissimilaridade(self):
+      votos = self.de_parlamentares()
+      matrix = np.zeros((votos.shape[0], votos.shape[0]))
+
+      for pa in range(votos.shape[0]):
+         for pb in range(pa + 1, votos.shape[0]):
+            dissimilaridade = 0
+
+            for i in range(votos.shape[1]):
+               if votos[pa, i] != votos[pb, i]:
+                  dissimilaridade += 1
+
+            dissimilaridade /= votos.shape[1]
+
+            matrix[pa, pb] = dissimilaridade
+            matrix[pb, pa] = dissimilaridade
+
+      return matrix
+
    def plenario(self):
       return self._plenario
 
