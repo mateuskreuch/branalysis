@@ -20,7 +20,7 @@ def filter_nominais(votacoes):
 
 def get_votacao_id(votacao):
    codigo_sessao = votacao['CodigoSessao']
-   sequencial_sessao = votacao['SequencialSessao']
+   sequencial_sessao = votacao['CodigoSessaoVotacao']
 
    return f'{codigo_sessao}-{sequencial_sessao}'
 
@@ -33,11 +33,11 @@ def convert_votacao(votacao):
       ano=votacao['AnoMateria']
    )
 
-def convert_voto(votacao, voto):
+def convert_voto(votacao, voto: dict):
    return Senado_Voto(
       votacao=get_votacao_id(votacao),
       parlamentar=voto['CodigoParlamentar'],
-      partido=voto['SiglaPartido'],
+      partido=voto.get('SiglaPartido', 'SEM REGISTRO'),
       uf=voto['SiglaUF'],
       voto=voto['Voto']
    )
