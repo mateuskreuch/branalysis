@@ -122,9 +122,9 @@ class TempoColorizador(CorDict):
    def __init__(self, plenario: Plenario, intervalo=10):
       super().__init__()
 
-      _, ano_final = plenario.periodo()
+      _, data_final = plenario.periodo()
       self._intervalo = intervalo
-      self._ano_final = self._get_closest(ano_final)
+      self._ano_final = self._get_closest(data_final.year)
 
    def __getitem__(self, key):
       ano = self._get_closest(key.year)

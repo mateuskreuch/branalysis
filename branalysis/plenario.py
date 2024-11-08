@@ -167,8 +167,8 @@ class Plenario:
                .where(self._VOTACAO_CLS.data.between(*self._periodo))
                .order_by(self._VOTO_CLS.votacao))
 
-   def periodo(self) -> tuple[int]:
-      return self._periodo
+   def periodo(self) -> tuple[date]:
+      return (date.fromisoformat(self._periodo[0]), date.fromisoformat(self._periodo[1]))
 
 class Camara(Plenario):
    _PARLAMENTAR_CLS = Camara_Parlamentar
@@ -178,11 +178,9 @@ class Camara(Plenario):
    def __init__(self, periodo_comeco, periodo_fim = None):
       super().__init__(periodo_comeco, periodo_fim)
 
-      data_comeco, data_fim = self.periodo()
-      ano_comeco = int(data_comeco[:4])
-      ano_fim = int(data_fim[:4])
+      data_comeco, data_final = self.periodo()
 
-      for ano in range(ano_comeco, ano_fim + 1):
+      for ano in range(data_comeco.year, data_final.year + 1):
          camara.cache(ano)
 
 class Senado(Plenario):
@@ -193,9 +191,7 @@ class Senado(Plenario):
    def __init__(self, periodo_comeco, periodo_fim = None):
       super().__init__(periodo_comeco, periodo_fim)
 
-      data_comeco, data_fim = self.periodo()
-      ano_comeco = int(data_comeco[:4])
-      ano_fim = int(data_fim[:4])
+      data_comeco, data_final = self.periodo()
 
-      for ano in range(ano_comeco, ano_fim + 1):
+      for ano in range(data_comeco.year, data_final.year + 1):
          senado.cache(ano)
