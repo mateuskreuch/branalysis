@@ -11,7 +11,7 @@ def convert(deputados):
          id=deputado['uri'].split('/')[-1],
          nome=deputado['nome'],
          sexo=deputado['siglaSexo'],
-         data_nascimento=deputado['dataNascimento']
+         data_nascimento=deputado.get('dataNascimento', NO_DATE)
       )
 
 def has_records():

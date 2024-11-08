@@ -1,16 +1,32 @@
 import requests
 
+NO_PARTY = 'SEM PARTIDO'
+NO_ENTRY = 'SEM REGISTRO'
+NO_DATE = '0000-00-00'
+
 def strip_dict_values(data):
    if isinstance(data, dict):
+      keys_to_del = []
+
       for key, value in data.items():
-         data[key] = strip_dict_values(value)
+         new_value = strip_dict_values(value)
+
+         if new_value is not None:
+            data[key] = new_value
+         else:
+            keys_to_del.append(key)
+
+      for key in keys_to_del:
+         del data[key]
 
    elif isinstance(data, list):
       for index in range(len(data)):
          data[index] = strip_dict_values(data[index])
 
    elif isinstance(data, str):
-      return data.strip().upper()
+      x = data.strip().upper()
+
+      return x if x else None
 
    return data
 

@@ -33,14 +33,18 @@ def convert_votacao(votacao):
       ano=votacao['AnoMateria']
    )
 
-def convert_voto(votacao, voto: dict):
-   return Senado_Voto(
-      votacao=get_votacao_id(votacao),
-      parlamentar=voto['CodigoParlamentar'],
-      partido=voto.get('SiglaPartido', 'SEM REGISTRO'),
-      uf=voto['SiglaUF'],
-      voto=voto['Voto']
-   )
+def convert_partido(partido):
+   return NO_PARTY if partido == 'S/PARTIDO' else partido
+
+def convert_voto(votacao, voto):
+   if 'CodigoSessao' in votacao and 'CodigoSessaoVotacao' in votacao and 'CodigoParlamentar' in voto:
+      return Senado_Voto(
+         votacao=get_votacao_id(votacao),
+         parlamentar=voto['CodigoParlamentar'],
+         partido=convert_partido(voto.get('SiglaPartido', NO_ENTRY)),
+         uf=voto.get('SiglaUF', NO_ENTRY),
+         voto=voto.get('Voto', NO_ENTRY)
+      )
 
 def convert_parlamentar(voto):
    return Senado_Parlamentar(
@@ -76,7 +80,9 @@ def cache(year):
                senado_parlamentar.save(force_insert=True)
 
             senado_voto = convert_voto(votacao, voto)
-            senado_voto.save(force_insert=True)
+
+            if senado_voto:
+               senado_voto.save(force_insert=True)
 
          senado_votacao = convert_votacao(votacao)
          senado_votacao.save(force_insert=True)

@@ -48,16 +48,28 @@ class Plenario:
                                                    .order_by(self._PARLAMENTAR_CLS.nome))
 
    @functools.cache
+   def tipos_voto(self) -> tuple[str]:
+      return tuple(v.voto for v in self.votos(self._VOTO_CLS.voto)
+                                       .order_by(self._VOTO_CLS.voto)
+                                       .distinct())
+
+   @functools.cache
+   def tipos_votacao(self) -> tuple[str]:
+      return tuple(v.tipo for v in self.votacoes(self._VOTACAO_CLS.tipo)
+                                       .order_by(self._VOTACAO_CLS.tipo)
+                                       .distinct())
+
+   @functools.cache
    def partidos(self) -> tuple[str]:
       return tuple(v.partido for v in self.votos(self._VOTO_CLS.partido)
-                                             .order_by(self._VOTO_CLS.partido)
-                                             .distinct())
+                                          .order_by(self._VOTO_CLS.partido)
+                                          .distinct())
 
    @functools.cache
    def ufs(self) -> tuple[str]:
       return tuple(v.uf for v in self.votos(self._VOTO_CLS.uf)
-                                             .order_by(self._VOTO_CLS.uf)
-                                             .distinct())
+                                    .order_by(self._VOTO_CLS.uf)
+                                    .distinct())
 
    def macroregioes(self) -> tuple[str]:
       return MACROREGIOES
