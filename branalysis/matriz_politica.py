@@ -1,8 +1,8 @@
-from .db.model import BaseVoto
+from .db.model import BaseParlamentar, BaseVotacao, BaseVoto
 from .db.utils import get_parlamentar_id
 from .plenario import Plenario
 from collections import defaultdict
-from typing import Callable
+from typing import Callable, Iterable
 import numpy as np, functools, statistics
 
 def transformador_sim_nao(matriz_politica, voto):
@@ -35,14 +35,15 @@ Imputador = Callable[[Plenario, list[BaseVoto], TransformadorVoto], dict[str, fl
 class MatrizPolitica:
    def __init__(
       self,
-      plenario: Plenario,
+      parlamentares: list[BaseParlamentar],
+      votacoes: Iterable[BaseVotacao],
       imputador: Imputador = imputador_vota_com_partido,
       transformador_voto: TransformadorVoto = transformador_sim_nao
    ):
-      self._plenario = plenario
+      self._votacoes = votacoes
+      self._parlamentares = parlamentares
       self._transformador_voto = transformador_voto
       self._imputador = imputador
-      self._parlamentares = self._plenario.parlamentares()
 
    def de_parlamentares(self):
       return self.de_votacoes().T
@@ -52,7 +53,7 @@ class MatrizPolitica:
       parlamentares_len = len(self._parlamentares)
       matrix = []
 
-      for votacao in self._plenario.votacoes().iterator():
+      for votacao in self._votacoes:
          votos = votacao.votos
          imputacao_votos = self._imputador(self, votos)
 
@@ -85,8 +86,11 @@ class MatrizPolitica:
 
       return matrix
 
-   def plenario(self):
-      return self._plenario
+   def votacoes(self):
+      return self._votacoes
+
+   def parlamentares(self):
+      return self._parlamentares
 
    def imputador(self):
       return self._imputador
