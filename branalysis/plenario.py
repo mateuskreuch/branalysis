@@ -26,9 +26,9 @@ def cast_periodo(periodo, end=False):
    return periodo
 
 class Plenario:
-   _PARLAMENTAR_CLS: BaseParlamentar
-   _VOTACAO_CLS: BaseVotacao
-   _VOTO_CLS: BaseVoto
+   _PARLAMENTAR_CLS: Parlamentar
+   _VOTACAO_CLS: Votacao
+   _VOTO_CLS: Voto
 
    def __init__(self, periodo_comeco, periodo_fim = None):
       periodo_fim = periodo_fim or periodo_comeco
@@ -38,7 +38,7 @@ class Plenario:
 
       self._periodo = (periodo_comeco, periodo_fim)
 
-   def parlamentares(self, *fields) -> list[BaseParlamentar]:
+   def parlamentares(self, *fields) -> list[Parlamentar]:
       return list(p.set_plenario(self) for p in self._PARLAMENTAR_CLS
                                                    .select(*fields)
                                                    .join(self._VOTO_CLS)
@@ -74,7 +74,7 @@ class Plenario:
    def macroregioes(self) -> tuple[str]:
       return MACROREGIOES
 
-   def parlamentares_por_partido(self) -> dict[str, list[BaseParlamentar]]:
+   def parlamentares_por_partido(self) -> dict[str, list[Parlamentar]]:
       votos = (self.votos(self._VOTO_CLS.parlamentar, self._VOTO_CLS.partido)
                   .order_by(self._VOTO_CLS.partido)
                   .distinct()
@@ -87,7 +87,7 @@ class Plenario:
 
       return result
 
-   def parlamentares_por_uf(self) -> dict[str, list[BaseParlamentar]]:
+   def parlamentares_por_uf(self) -> dict[str, list[Parlamentar]]:
       votos = (self.votos(self._VOTO_CLS.parlamentar, self._VOTO_CLS.uf)
                   .order_by(self._VOTO_CLS.uf)
                   .distinct()
@@ -166,13 +166,13 @@ class Plenario:
 
       return MappingProxyType({k: tuple(v) for k, v in result.items()})
 
-   def votacoes(self, *fields) -> Iterable[BaseVotacao]:
+   def votacoes(self, *fields) -> Iterable[Votacao]:
       return (self._VOTACAO_CLS
                   .select(*fields)
                   .where(self._VOTACAO_CLS.data.between(*self._periodo))
                   .order_by(self._VOTACAO_CLS.id))
 
-   def votos(self, *fields) -> Iterable[BaseVoto]:
+   def votos(self, *fields) -> Iterable[Voto]:
       return (self._VOTO_CLS
                .select(*fields)
                .join(self._VOTACAO_CLS)

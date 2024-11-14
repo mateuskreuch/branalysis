@@ -1,4 +1,4 @@
-from .db.model import BaseParlamentar, BaseVotacao, BaseVoto
+from .db.model import Parlamentar, Votacao, Voto
 from .db.utils import get_parlamentar_id
 from .plenario import Plenario
 from collections import defaultdict
@@ -29,14 +29,14 @@ def imputador_vota_com_partido(matriz_politica, votos):
 
    return { k: statistics.mean(v) if len(v) > 0 else 0 for k, v in direcao_partidaria.items() }
 
-TransformadorVoto = Callable[[Plenario, BaseVoto], float]
-Imputador = Callable[[Plenario, list[BaseVoto], TransformadorVoto], dict[str, float]]
+TransformadorVoto = Callable[[Plenario, Voto], float]
+Imputador = Callable[[Plenario, list[Voto], TransformadorVoto], dict[str, float]]
 
 class MatrizPolitica:
    def __init__(
       self,
-      parlamentares: list[BaseParlamentar],
-      votacoes: Iterable[BaseVotacao],
+      parlamentares: list[Parlamentar],
+      votacoes: Iterable[Votacao],
       imputador: Imputador = imputador_vota_com_partido,
       transformador_voto: TransformadorVoto = transformador_sim_nao
    ):
@@ -66,6 +66,9 @@ class MatrizPolitica:
                value if value is not None else imputacao_votos[voto.partido])
 
       return np.array(matrix)
+
+   def de_similaridade(self, epsilon=0.01):
+      return 1 - self.de_dissimilaridade(epsilon)
 
    def de_dissimilaridade(self, epsilon=0.01):
       votos = self.de_parlamentares()

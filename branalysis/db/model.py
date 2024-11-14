@@ -9,7 +9,7 @@ class BaseModel(Model):
    class Meta:
       database = DB
 
-class BaseParlamentar(BaseModel):
+class Parlamentar(BaseModel):
    id = TextField(primary_key=True)
    nome = TextField()
    sexo = TextField()
@@ -32,7 +32,7 @@ class BaseParlamentar(BaseModel):
    def presenca(self) -> float:
       return self._plenario.presenca_por_parlamentar()[self.id]
 
-class BaseVoto(BaseModel):
+class Voto(BaseModel):
    votacao: ForeignKeyField
    parlamentar: ForeignKeyField
 
@@ -40,20 +40,20 @@ class BaseVoto(BaseModel):
    uf = TextField()
    voto = TextField()
 
-class BaseVotacao(BaseModel):
+class Votacao(BaseModel):
    id = TextField(primary_key=True)
    data = DateField()
    tipo = TextField()
    numero = IntegerField()
    ano = IntegerField()
 
-class Camara_Votacao(BaseVotacao):
+class Camara_Votacao(Votacao):
    pass
 
-class Camara_Parlamentar(BaseParlamentar):
+class Camara_Parlamentar(Parlamentar):
    pass
 
-class Camara_Voto(BaseVoto):
+class Camara_Voto(Voto):
    votacao = ForeignKeyField(Camara_Votacao, backref='votos')
    parlamentar = ForeignKeyField(Camara_Parlamentar, backref='votos')
 
@@ -64,13 +64,13 @@ class Camara_Proposicao(BaseModel):
    numero = IntegerField()
    ano = IntegerField()
 
-class Senado_Votacao(BaseVotacao):
+class Senado_Votacao(Votacao):
    pass
 
-class Senado_Parlamentar(BaseParlamentar):
+class Senado_Parlamentar(Parlamentar):
    pass
 
-class Senado_Voto(BaseVoto):
+class Senado_Voto(Voto):
    votacao = ForeignKeyField(Senado_Votacao, backref='votos')
    parlamentar = ForeignKeyField(Senado_Parlamentar, backref='votos')
 
