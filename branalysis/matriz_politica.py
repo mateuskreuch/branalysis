@@ -1,36 +1,38 @@
 from .db.model import Parlamentar, Votacao, Voto
 from .db.utils import get_parlamentar_id
-from .plenario import Plenario
 from collections import defaultdict
+from statistics import mean
 from typing import Callable, Iterable
-import numpy as np, functools, statistics
+import numpy as np, functools
 
-def transformador_sim_nao(matriz_politica, voto):
-   if voto.voto == 'SIM':
-      return 1
+def transformador_sim_nao(matriz_politica: 'MatrizPolitica', voto: Voto) -> float:
+   match voto.voto:
+      case 'SIM': return 1
+      case 'NÃO': return -1
+      case 'ABSTENÇÃO', 'OBSTRUÇÃO', 'P-NRV': return 0
 
-   elif voto.voto == 'NÃO':
-      return -1
+def imputador_zero(matriz_politica: 'MatrizPolitica', votacao: Votacao, votos: list[Voto], votos_numericos: list[float]):
+   return [x if x is not None else 0 for x in votos_numericos]
 
-def imputador_zero(matriz_politica, votos):
-   return defaultdict(int)
+def imputador_vota_com_partido(matriz_politica: 'MatrizPolitica', votacao: Votacao, votos: list[Voto], votos_numericos: list[float]):
+   data = votacao.data
+   direcao_partidaria = defaultdict(int)
 
-def imputador_vota_com_partido(matriz_politica, votos):
-   transformador = matriz_politica.transformador_voto()
-   direcao_partidaria = {}
+   for i, voto in enumerate(votos):
+      if votos_numericos[i] is not None:
+         direcao_partidaria.setdefault(voto.partido, []).append(votos_numericos[i])
 
-   for voto in votos:
-      value = transformador(matriz_politica, voto)
+   for k in direcao_partidaria:
+      direcao_partidaria[k] = mean(direcao_partidaria[k])
 
-      direcao_partidaria.setdefault(voto.partido, [])
+   for i, parlamentar in enumerate(matriz_politica.parlamentares()):
+      if votos_numericos[i] is None:
+         votos_numericos[i] = direcao_partidaria[parlamentar.partido(data)]
 
-      if value is not None:
-         direcao_partidaria[voto.partido].append(value)
+   return votos_numericos
 
-   return { k: statistics.mean(v) if len(v) > 0 else 0 for k, v in direcao_partidaria.items() }
-
-TransformadorVoto = Callable[[Plenario, Voto], float]
-Imputador = Callable[[Plenario, list[Voto], TransformadorVoto], dict[str, float]]
+TransformadorVoto = Callable[['MatrizPolitica', Voto], float]
+Imputador = Callable[['MatrizPolitica', Votacao, list[Voto], list[float]], list[float]]
 
 class MatrizPolitica:
    def __init__(
@@ -54,18 +56,17 @@ class MatrizPolitica:
       matrix = []
 
       for votacao in self._votacoes:
-         votos = votacao.votos
-         imputacao_votos = self._imputador(self, votos)
+         votos = [None] * parlamentares_len
+         matrix.append([None] * parlamentares_len)
 
-         matrix.append([0] * parlamentares_len)
-
-         for voto in votos:
+         for voto in votacao.votos:
             parlamentar_id = get_parlamentar_id(voto)
 
             if parlamentar_id in parlamentares_index:
-               value = self._transformador_voto(self, voto)
-               matrix[-1][parlamentares_index[parlamentar_id]] = (
-                  value if value is not None else imputacao_votos[voto.partido])
+               votos[parlamentares_index[parlamentar_id]] = voto
+               matrix[-1][parlamentares_index[parlamentar_id]] = self._transformador_voto(self, voto)
+
+         matrix[-1] = self._imputador(self, votacao, votos, matrix[-1])
 
       return np.array(matrix)
 

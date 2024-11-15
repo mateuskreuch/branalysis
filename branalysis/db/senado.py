@@ -36,6 +36,9 @@ def convert_votacao(votacao):
 def convert_partido(partido):
    return NO_PARTY if partido == 'S/PARTIDO' else partido
 
+def convert_valor_voto(voto):
+   return 'OBSTRUÇÃO' if voto == 'P-OD' else voto
+
 def convert_voto(votacao, voto):
    if 'CodigoSessao' in votacao and 'CodigoSessaoVotacao' in votacao and 'CodigoParlamentar' in voto:
       return Senado_Voto(
@@ -43,7 +46,7 @@ def convert_voto(votacao, voto):
          parlamentar=voto['CodigoParlamentar'],
          partido=convert_partido(voto.get('SiglaPartido', NO_ENTRY)),
          uf=voto.get('SiglaUF', NO_ENTRY),
-         voto=voto.get('Voto', NO_ENTRY)
+         voto=convert_valor_voto(voto.get('Voto', NO_ENTRY))
       )
 
 def convert_parlamentar(voto):
