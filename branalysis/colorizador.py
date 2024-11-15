@@ -50,6 +50,19 @@ class CorDict(dict):
       return zip(*sorted(self.items(), key=key, reverse=reverse))
 
 class Colorizador(CorDict):
+   """
+   O Colorizador é um dicionário especializado que mapeia chaves a índices de
+   cores. Toda chave, ao ser acessada pela primeira vez, é mapeada a um índice
+   único. Quando uma chave é acessada novamente, o mesma índice é retornada.
+
+   O Colorizador também descompacta chaves que são tuplas automaticamente, caso
+   elas tenham apenas um elemento. Caso uma tupla tenha mais de um elemento, ela
+   contará como o `fallback` definido.
+
+   Além disso, é possível definir um `agrupador`, que é uma função que transforma
+   chaves em outras chaves.
+   """
+
    def __init__(self, fallback='DESCONHECIDO', agrupador: Callable[[Any], str]=None, reservados: list[tuple[str]]=None):
       super().__init__()
 
@@ -68,9 +81,14 @@ class Colorizador(CorDict):
 
    def __getitem__(self, key):
       if self._agrupador is not None:
-         key = self._agrupador(key) or key
+         key = self._agrupador(key)
 
-      if type(key) != tuple:
+      if key is None:
+         self[self._fallback] = 0
+
+         return 0
+
+      elif type(key) != tuple:
          return super().__getitem__(self._increase_color(key))
 
       elif len(key) != 1:
@@ -96,6 +114,12 @@ class Colorizador(CorDict):
       return key
 
 class SexoColorizador(CorDict):
+   """
+   O SexoColorizador é um dicionário especializado que mapeia chaves de sexo a
+   índices de cores. Ele mapeia as chaves "M", "MASCULINO" e "HOMEM" ao índice 0,
+   as chaves "F", "FEMININO" e "MULHER" ao índice 19 e todas as outras chaves ao
+   índice 10.
+   """
    def __init__(self, homem_texto='HOMEM', mulher_texto='MULHER', outro_texto='OUTRO'):
       super().__init__()
 
@@ -119,6 +143,11 @@ class SexoColorizador(CorDict):
          return super().__getitem__(self._outro_texto)
 
 class TempoColorizador(CorDict):
+   """
+   O TempoColorizador é um dicionário especializado que mapeia chaves de datas a
+   índices de cores. Ele mapeia as chaves a índices de cores de acordo com o ano
+   mais próximo que seja múltiplo do intervalo definido.
+   """
    def __init__(self, plenario: Plenario, intervalo=10):
       super().__init__()
 

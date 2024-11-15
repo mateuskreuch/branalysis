@@ -6,15 +6,26 @@ from typing import Callable, Iterable
 import numpy as np, functools
 
 def transformador_sim_nao(matriz_politica: 'MatrizPolitica', voto: Voto) -> float:
+   """
+   Transforma um voto textual em um número, sendo 1 para "SIM", -1 para "NÃO" e
+   0 para "ABSTENÇÃO", "OBSTRUÇÃO" e "P-NRV". Outros valores são considerados
+   faltantes e serão imputados pelo imputador.
+   """
    match voto.voto:
       case 'SIM': return 1
       case 'NÃO': return -1
       case 'ABSTENÇÃO', 'OBSTRUÇÃO', 'P-NRV': return 0
 
 def imputador_zero(matriz_politica: 'MatrizPolitica', votacao: Votacao, votos: list[Voto], votos_numericos: list[float]):
+   """
+   Imputa votos faltantes com 0.
+   """
    return [x if x is not None else 0 for x in votos_numericos]
 
 def imputador_vota_com_partido(matriz_politica: 'MatrizPolitica', votacao: Votacao, votos: list[Voto], votos_numericos: list[float]):
+   """
+   Imputa votos faltantes com a média dos votos númericos do partido do parlamentar.
+   """
    data = votacao.data
    direcao_partidaria = defaultdict(int)
 
@@ -48,9 +59,19 @@ class MatrizPolitica:
       self._imputador = imputador
 
    def de_parlamentares(self):
+      """
+      Retorna a matriz de votos dos parlamentares. Com um algoritmo de redução
+      de dimensionalidade, gera um mapa ideológico dos parlamentares, onde
+      parlamentares próximos votam de maneira similar.
+      """
       return self.de_votacoes().T
 
    def de_votacoes(self):
+      """
+      Retorna a matriz de votos das votações. Com um algoritmo de redução de
+      dimensionalidade, gera um mapa ideológico das votações, onde votações
+      similares possuem perfis de votos similares.
+      """
       parlamentares_index = self._parlamentares_to_index()
       parlamentares_len = len(self._parlamentares)
       matrix = []
@@ -71,9 +92,21 @@ class MatrizPolitica:
       return np.array(matrix)
 
    def de_similaridade(self, epsilon=0.01):
+      """
+      Retorna a matriz de similaridade entre os parlamentares. A
+      similaridade é definida como a porcentagem de votos convergentes entre
+      os parlamentares, sendo um voto considerado convergente caso a diferença do
+      valor numérico de seus votos seja menor que `epsilon`.
+      """
       return 1 - self.de_dissimilaridade(epsilon)
 
    def de_dissimilaridade(self, epsilon=0.01):
+      """
+      Retorna a matriz de dissimilaridade entre os parlamentares. A
+      dissimilaridade é definida como a porcentagem de votos divergentes entre
+      os parlamentares, sendo um voto considerado divergente caso a diferença do
+      valor numérico de seus votos ultrapasse `epsilon`.
+      """
       votos = self.de_parlamentares()
       matrix = np.zeros((votos.shape[0], votos.shape[0]))
 

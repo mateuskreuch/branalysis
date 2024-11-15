@@ -76,6 +76,11 @@ class Plenario:
       return MACROREGIOES
 
    def parlamentares_por_partido(self) -> dict[str, list[Parlamentar]]:
+      """
+      Retorna os parlamentares agrupados por partido. Parlamentares podem
+      estar associados a mais de um partido, devido a mudanças partidárias
+      durante o período escolhido.
+      """
       votos = (self._votos(self._VOTO_CLS.parlamentar, self._VOTO_CLS.partido)
                   .order_by(self._VOTO_CLS.partido)
                   .distinct()
@@ -89,6 +94,11 @@ class Plenario:
       return result
 
    def parlamentares_por_uf(self) -> dict[str, list[Parlamentar]]:
+      """
+      Retorna os parlamentares agrupados por UF. Parlamentares podem
+      estar associados a mais de uma UF, devido a mudanças de domicílio
+      durante o período escolhido.
+      """
       votos = (self._votos(self._VOTO_CLS.parlamentar, self._VOTO_CLS.uf)
                   .order_by(self._VOTO_CLS.uf)
                   .distinct()
@@ -103,6 +113,9 @@ class Plenario:
 
    @functools.cache
    def presenca_por_parlamentar(self) -> dict[str, float]:
+      """
+      Retorna a presença de cada parlamentar no período escolhido. Não é 100% fiel.
+      """
       result = defaultdict(int)
       total_votacoes = self._votacoes().count()
       votos = self._votos(self._VOTO_CLS.parlamentar).iterator()
@@ -114,6 +127,19 @@ class Plenario:
 
    @functools.cache
    def ufs_por_parlamentar(self, com_data=False) -> dict[str, tuple[str]] | dict[str, tuple[tuple[str, date, date]]]:
+      """
+      Retorna as UFs de cada parlamentar no período escolhido. Como
+      parlamentares podem pertencer a mais de uma UF durante o período escolhido,
+      cada parlamentar tem suas UFs representadas como uma tupla, organizados em
+      ordem cronológica. Isto é, um parlamentar com a tupla `("SC", "RS", "SC")`
+      significa que ele se candidatou em Santa Catarina, depois no Rio Grande do
+      Sul e depois voltou para Santa Catarina.
+
+      Também é possível passar o argumento `com_data=True` para obter a data de
+      início e fim associadas:
+
+      `(("SC", date(2022, 5, 2), date(2022, 6, 3)), ("RS", date(2022, 6, 4), date(2022, 7, 5)), ("SC", date(2022, 7, 6), date(2022, 8, 7)))`
+      """
       votos = (self._votos(self._VOTO_CLS.parlamentar, self._VOTACAO_CLS.data, self._VOTO_CLS.uf)
                   .order_by(self._VOTACAO_CLS.data)
                   .iterator())
@@ -122,6 +148,19 @@ class Plenario:
 
    @functools.cache
    def macroregioes_por_parlamentar(self, com_data=False) -> dict[str, tuple[str]] | dict[str, tuple[tuple[str, date, date]]]:
+      """
+      Retorna as macrorregiões de cada parlamentar no período escolhido. Como
+      parlamentares podem pertencer a mais de uma macrorregião durante o período
+      escolhido, cada parlamentar tem suas macrorregiões representadas como uma
+      tupla, organizados em ordem cronológica. Isto é, um parlamentar com a
+      tupla `("SUL", "SUDESTE", "SUL")` significa que ele se candidatou no Sul,
+      depois no Sudeste e depois voltou para o Sul.
+
+      Também é possível passar o argumento `com_data=True` para obter a data de
+      início e fim associadas:
+
+      `(("SUL", date(2022, 5, 2), date(2022, 6, 3)), ("SUDESTE", date(2022, 6, 4), date(2022, 7, 5)), ("SUL", date(2022, 7, 6), date(2022, 8, 7))`
+      """
       votos = (self._votos(self._VOTO_CLS.parlamentar, self._VOTACAO_CLS.data, self._VOTO_CLS.uf)
                   .order_by(self._VOTACAO_CLS.data)
                   .iterator())
@@ -130,6 +169,19 @@ class Plenario:
 
    @functools.cache
    def partidos_por_parlamentar(self, com_data=False) -> dict[str, tuple[str]] | dict[str, tuple[tuple[str, date, date]]]:
+      """
+      Retorna os partidos de cada parlamentar no período escolhido. Como
+      parlamentares podem pertencer a mais de um partido durante o período
+      escolhido, cada parlamentar tem seus partidos representados como uma tupla,
+      organizados em ordem cronológica. Isto é, um parlamentar com a tupla
+      `("PT", "PSDB", "PT")` significa que ele se candidatou pelo PT, depois
+      pelo PSDB e depois voltou para o PT.
+
+      Também é possível passar o argumento `com_data=True` para obter a data de
+      início e fim associadas:
+
+      `(("PT", date(2022, 5, 2), date(2022, 6, 3)), ("PSDB", date(2022, 6, 4), date(2022, 7, 5)), ("PT", date(2022, 7, 6), date(2022, 8, 7))`
+      """
       votos = (self._votos(self._VOTO_CLS.parlamentar, self._VOTACAO_CLS.data, self._VOTO_CLS.partido)
                   .order_by(self._VOTACAO_CLS.data)
                   .iterator())
