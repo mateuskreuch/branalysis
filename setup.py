@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
    name='branalysis',
-   version='1.0.10',
+   version='1.0.12',
    description='Coleta e facilita a análise de votações nominais do Congresso Nacional',
    long_description=open('README.md').read(),
    long_description_content_type='text/markdown',
