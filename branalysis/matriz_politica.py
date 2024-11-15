@@ -61,9 +61,11 @@ class MatrizPolitica:
 
          for voto in votos:
             parlamentar_id = get_parlamentar_id(voto)
-            value = self._transformador_voto(self, voto)
-            matrix[-1][parlamentares_index[parlamentar_id]] = (
-               value if value is not None else imputacao_votos[voto.partido])
+
+            if parlamentar_id in parlamentares_index:
+               value = self._transformador_voto(self, voto)
+               matrix[-1][parlamentares_index[parlamentar_id]] = (
+                  value if value is not None else imputacao_votos[voto.partido])
 
       return np.array(matrix)
 
