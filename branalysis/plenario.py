@@ -2,11 +2,12 @@ from .db import camara, senado
 from .db.model import *
 from .db.utils import get_parlamentar_id
 from collections import defaultdict
-from datetime import date
+from datetime import date, timedelta
 from types import MappingProxyType
 from typing import Iterable
 import functools
 
+ONE_DAY = timedelta(days=1)
 MACROREGIOES = ('NORTE', 'NORDESTE', 'CENTRO-OESTE', 'SUDESTE', 'SUL')
 MACROREGIOES_POR_UF = ({ uf : MACROREGIOES[0] for uf in ('AC', 'AM', 'AP', 'PA', 'RO', 'RR', 'TO') }
                     |  { uf : MACROREGIOES[1] for uf in ('AL', 'BA', 'CE', 'MA', 'PB', 'PE', 'PI', 'RN', 'SE') }
@@ -38,9 +39,9 @@ class Plenario:
 
       self._periodo = (periodo_comeco, periodo_fim)
 
-   def parlamentares(self, *fields) -> list[Parlamentar]:
+   def parlamentares(self) -> list[Parlamentar]:
       return list(p.set_plenario(self) for p in self._PARLAMENTAR_CLS
-                                                   .select(*fields)
+                                                   .select()
                                                    .join(self._VOTO_CLS)
                                                    .join(self._VOTACAO_CLS)
                                                    .where(self._VOTACAO_CLS.data.between(*self._periodo))
@@ -49,25 +50,25 @@ class Plenario:
 
    @functools.cache
    def tipos_voto(self) -> tuple[str]:
-      return tuple(v.voto for v in self.votos(self._VOTO_CLS.voto)
+      return tuple(v.voto for v in self._votos(self._VOTO_CLS.voto)
                                        .order_by(self._VOTO_CLS.voto)
                                        .distinct())
 
    @functools.cache
    def tipos_votacao(self) -> tuple[str]:
-      return tuple(v.tipo for v in self.votacoes(self._VOTACAO_CLS.tipo)
+      return tuple(v.tipo for v in self._votacoes(self._VOTACAO_CLS.tipo)
                                        .order_by(self._VOTACAO_CLS.tipo)
                                        .distinct())
 
    @functools.cache
    def partidos(self) -> tuple[str]:
-      return tuple(v.partido for v in self.votos(self._VOTO_CLS.partido)
+      return tuple(v.partido for v in self._votos(self._VOTO_CLS.partido)
                                           .order_by(self._VOTO_CLS.partido)
                                           .distinct())
 
    @functools.cache
    def ufs(self) -> tuple[str]:
-      return tuple(v.uf for v in self.votos(self._VOTO_CLS.uf)
+      return tuple(v.uf for v in self._votos(self._VOTO_CLS.uf)
                                     .order_by(self._VOTO_CLS.uf)
                                     .distinct())
 
@@ -75,7 +76,7 @@ class Plenario:
       return MACROREGIOES
 
    def parlamentares_por_partido(self) -> dict[str, list[Parlamentar]]:
-      votos = (self.votos(self._VOTO_CLS.parlamentar, self._VOTO_CLS.partido)
+      votos = (self._votos(self._VOTO_CLS.parlamentar, self._VOTO_CLS.partido)
                   .order_by(self._VOTO_CLS.partido)
                   .distinct()
                   .iterator())
@@ -88,7 +89,7 @@ class Plenario:
       return result
 
    def parlamentares_por_uf(self) -> dict[str, list[Parlamentar]]:
-      votos = (self.votos(self._VOTO_CLS.parlamentar, self._VOTO_CLS.uf)
+      votos = (self._votos(self._VOTO_CLS.parlamentar, self._VOTO_CLS.uf)
                   .order_by(self._VOTO_CLS.uf)
                   .distinct()
                   .iterator())
@@ -103,8 +104,8 @@ class Plenario:
    @functools.cache
    def presenca_por_parlamentar(self) -> dict[str, float]:
       result = defaultdict(int)
-      total_votacoes = self.votacoes().count()
-      votos = self.votos(self._VOTO_CLS.parlamentar).iterator()
+      total_votacoes = self._votacoes().count()
+      votos = self._votos(self._VOTO_CLS.parlamentar).iterator()
 
       for voto in votos:
          result[get_parlamentar_id(voto)] += 1
@@ -112,75 +113,93 @@ class Plenario:
       return MappingProxyType({k: v / total_votacoes for k, v in result.items()})
 
    @functools.cache
-   def ufs_por_parlamentar(self) -> dict[str, tuple[str]]:
-      result = {}
-      votos = (self.votos(self._VOTO_CLS.parlamentar, self._VOTO_CLS.uf)
+   def ufs_por_parlamentar(self, com_data=False) -> dict[str, tuple[str]] | dict[str, tuple[tuple[str, date, date]]]:
+      votos = (self._votos(self._VOTO_CLS.parlamentar, self._VOTACAO_CLS.data, self._VOTO_CLS.uf)
                   .order_by(self._VOTACAO_CLS.data)
                   .iterator())
 
-      for voto in votos:
-         parlamentar_id = get_parlamentar_id(voto)
-
-         if parlamentar_id not in result:
-            result[parlamentar_id] = [voto.uf]
-
-         elif result[parlamentar_id][-1] != voto.uf:
-            result[parlamentar_id].append(voto.uf)
-
-      return MappingProxyType({k: tuple(v) for k, v in result.items()})
+      return self._aggregate_votos(com_data, votos, lambda voto: voto.uf)
 
    @functools.cache
-   def macroregioes_por_parlamentar(self) -> dict[str, tuple[str]]:
-      result = {}
-      votos = (self.votos(self._VOTO_CLS.parlamentar, self._VOTO_CLS.uf)
+   def macroregioes_por_parlamentar(self, com_data=False) -> dict[str, tuple[str]] | dict[str, tuple[tuple[str, date, date]]]:
+      votos = (self._votos(self._VOTO_CLS.parlamentar, self._VOTACAO_CLS.data, self._VOTO_CLS.uf)
                   .order_by(self._VOTACAO_CLS.data)
                   .iterator())
 
-      for voto in votos:
-         parlamentar_id = get_parlamentar_id(voto)
-         macrorregiao = MACROREGIOES_POR_UF[voto.uf]
-
-         if parlamentar_id not in result:
-            result[parlamentar_id] = [macrorregiao]
-
-         elif result[parlamentar_id][-1] != macrorregiao:
-            result[parlamentar_id].append(macrorregiao)
-
-      return MappingProxyType({k: tuple(v) for k, v in result.items()})
+      return self._aggregate_votos(com_data, votos, lambda voto: MACROREGIOES_POR_UF[voto.uf])
 
    @functools.cache
-   def partidos_por_parlamentar(self) -> dict[str, tuple[str]]:
-      result = {}
-      votos = (self.votos(self._VOTO_CLS.parlamentar, self._VOTO_CLS.partido)
+   def partidos_por_parlamentar(self, com_data=False) -> dict[str, tuple[str]] | dict[str, tuple[tuple[str, date, date]]]:
+      votos = (self._votos(self._VOTO_CLS.parlamentar, self._VOTACAO_CLS.data, self._VOTO_CLS.partido)
                   .order_by(self._VOTACAO_CLS.data)
                   .iterator())
 
-      for voto in votos:
-         parlamentar_id = get_parlamentar_id(voto)
+      return self._aggregate_votos(com_data, votos, lambda voto: voto.partido)
 
-         if parlamentar_id not in result:
-            result[parlamentar_id] = [voto.partido]
+   def votacoes(self) -> list[Votacao]:
+      return list(self._votacoes())
 
-         elif result[parlamentar_id][-1] != voto.partido:
-            result[parlamentar_id].append(voto.partido)
+   def votos(self) -> list[Voto]:
+      return list(self._votos())
 
-      return MappingProxyType({k: tuple(v) for k, v in result.items()})
-
-   def votacoes(self, *fields) -> Iterable[Votacao]:
+   def _votacoes(self, *fields) -> Iterable[Votacao]:
       return (self._VOTACAO_CLS
                   .select(*fields)
                   .where(self._VOTACAO_CLS.data.between(*self._periodo))
-                  .order_by(self._VOTACAO_CLS.id))
+                  .order_by(self._VOTACAO_CLS.data))
 
-   def votos(self, *fields) -> Iterable[Voto]:
+   def _votos(self, *fields) -> Iterable[Voto]:
       return (self._VOTO_CLS
                .select(*fields)
                .join(self._VOTACAO_CLS)
                .where(self._VOTACAO_CLS.data.between(*self._periodo))
-               .order_by(self._VOTO_CLS.votacao))
+               .order_by(self._VOTO_CLS.id))
 
    def periodo(self) -> tuple[date]:
       return (date.fromisoformat(self._periodo[0]), date.fromisoformat(self._periodo[1]))
+
+   def _aggregate_votos(self, com_data, votos: Iterable[Voto], key):
+      if com_data:
+         return self._aggregate_votos_com_data(votos, key)
+
+      else:
+         return self._aggregate_votos_sem_data(votos, key)
+
+   def _aggregate_votos_sem_data(self, votos: Iterable[Voto], key):
+      result = {}
+
+      for voto in votos:
+         parlamentar_id = get_parlamentar_id(voto)
+         x = key(voto)
+
+         if parlamentar_id not in result:
+            result[parlamentar_id] = [x]
+
+         elif result[parlamentar_id][-1] != x:
+            result[parlamentar_id].append(x)
+
+      return MappingProxyType({k: tuple(v) for k, v in result.items()})
+
+   def _aggregate_votos_com_data(self, votos: Iterable[Voto], key):
+      data_inicial, data_final = self.periodo()
+      result = {}
+
+      for voto in votos:
+         parlamentar_id = get_parlamentar_id(voto)
+         x = key(voto)
+
+         if parlamentar_id not in result:
+            result[parlamentar_id] = [[x, data_inicial, None]]
+
+         elif result[parlamentar_id][-1][0] != x:
+            result[parlamentar_id][-1][2] = voto.votacao.data - ONE_DAY
+            result[parlamentar_id].append([x, voto.votacao.data, None])
+
+      for parlamentar_id in result:
+         result[parlamentar_id][-1][2] = data_final
+         result[parlamentar_id] = tuple((x, inicio, fim) for x, inicio, fim in result[parlamentar_id])
+
+      return MappingProxyType(result)
 
 class Camara(Plenario):
    _PARLAMENTAR_CLS = Camara_Parlamentar
@@ -190,9 +209,9 @@ class Camara(Plenario):
    def __init__(self, periodo_comeco, periodo_fim = None):
       super().__init__(periodo_comeco, periodo_fim)
 
-      data_comeco, data_final = self.periodo()
+      data_inicial, data_final = self.periodo()
 
-      for ano in range(data_comeco.year, data_final.year + 1):
+      for ano in range(data_inicial.year, data_final.year + 1):
          camara.cache(ano)
 
 class Senado(Plenario):
@@ -203,7 +222,7 @@ class Senado(Plenario):
    def __init__(self, periodo_comeco, periodo_fim = None):
       super().__init__(periodo_comeco, periodo_fim)
 
-      data_comeco, data_final = self.periodo()
+      data_inicial, data_final = self.periodo()
 
-      for ano in range(data_comeco.year, data_final.year + 1):
+      for ano in range(data_inicial.year, data_final.year + 1):
          senado.cache(ano)

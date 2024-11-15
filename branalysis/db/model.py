@@ -1,9 +1,21 @@
+
+from datetime import date
 from peewee import *
+from typing import TYPE_CHECKING
+import functools
+
+if TYPE_CHECKING:
+   from plenario import Plenario
 
 DB = SqliteDatabase('branalysis.db')
 SENADO_API = 'https://legis.senado.leg.br/dadosabertos'
 CAMARA_API = 'https://dadosabertos.camara.leg.br/api/v2'
 CAMARA_FILES_API = 'https://dadosabertos.camara.leg.br/arquivos'
+
+def search_by_date(info, data):
+   for x, inicio, fim in info:
+      if inicio <= data <= fim:
+         return x
 
 class BaseModel(Model):
    class Meta:
@@ -15,19 +27,31 @@ class Parlamentar(BaseModel):
    sexo = TextField()
    data_nascimento = DateField(null=True)
 
-   def set_plenario(self, plenario):
+   def set_plenario(self, plenario: 'Plenario'):
       self._plenario = plenario
 
       return self
 
-   def partidos(self) -> tuple[str]:
-      return self._plenario.partidos_por_parlamentar()[self.id]
+   @functools.cache
+   def partido(self, data: date) -> str:
+      return search_by_date(self.partidos(com_data=True), data)
 
-   def ufs(self) -> tuple[str]:
-      return self._plenario.ufs_por_parlamentar()[self.id]
+   def partidos(self, com_data=False) -> tuple[str] | tuple[tuple[str, date, date]]:
+      return self._plenario.partidos_por_parlamentar(com_data)[self.id]
 
-   def macroregioes(self) -> tuple[str]:
-      return self._plenario.macroregioes_por_parlamentar()[self.id]
+   @functools.cache
+   def uf(self, data: date) -> str:
+      return search_by_date(self.ufs(com_data=True), data)
+
+   def ufs(self, com_data=False) -> tuple[str] | tuple[tuple[str, date, date]]:
+      return self._plenario.ufs_por_parlamentar(com_data)[self.id]
+
+   @functools.cache
+   def macroregiao(self, data: date) -> str:
+      return search_by_date(self.macroregioes(com_data=True), data)
+
+   def macroregioes(self, com_data=False) -> tuple[str] | tuple[tuple[str, date, date]]:
+      return self._plenario.macroregioes_por_parlamentar(com_data)[self.id]
 
    def presenca(self) -> float:
       return self._plenario.presenca_por_parlamentar()[self.id]
